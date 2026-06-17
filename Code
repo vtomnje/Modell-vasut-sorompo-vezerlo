@@ -1,0 +1,104 @@
+/*Modellvasút vasúti kereszteződés irányítása 2 szenzor segítségével
+ * A sorompó elektromágneses tekercsel van ellátva, így a tilos jelzés idejéig a kimenetet meghúzva kell tartani
+ * A fényjelző készüléket külön elektronika nélkül kell az eszközre csatlakoztatni, a villogtatást a program végzi.
+ * Készítő: Veszelszki Tamás (Neptun: PO4YGX) 2026
+ *
+ * Módosítva: Veszelszki Tamás (Neptun: PO4YGX) 2026
+ */
+ //Ki- és Bemenetek konfigurálása
+ 
+const int sens1 = 8;
+const int sens2 = 7;
+const int srmp = 12;
+const int szabad = 11;
+const int tilos1  = 10;
+const int tilos2 = 9;
+
+//Villogtatáshoz szükséges változók
+  
+//LED állapotok
+int ZledState = LOW;
+int RledState = LOW;
+int R1ledState = LOW;
+int R2ledState = LOW;
+
+//Utolsó mentett idő
+unsigned long ZpreviousMillis = 0;
+unsigned long RpreviousMillis = 0;
+
+//villogási sebesség
+const long interval = 500;
+
+void setup() {
+  
+  //Bemenetek beállítása 
+  pinMode(sens1, INPUT);
+  pinMode(sens2, INPUT);
+  
+  //Kimenetek beállítása 
+  pinMode(srmp,OUTPUT);
+  pinMode(tilos1,OUTPUT);
+  pinMode(tilos2,OUTPUT);
+  pinMode(szabad, OUTPUT);
+}
+
+void loop() {
+
+//Az érzékelők állapotának vizsgálata, majd a megfelelő értéknél ugrás a megfelelő programblokkokba
+if(digitalRead(sens1) == LOW){
+  tilosjelzes();
+}
+else if(digitalRead(sens2) == LOW){
+  tilosjelzes();
+}
+else{
+  szabadjelzes();
+}
+}
+void szabadjelzes() {
+  //Szabadjelzésnél használt programblokk, a sorompó nyitva, csak a fehér LED villog
+  digitalWrite(srmp, LOW);
+  digitalWrite(tilos1, LOW);
+  digitalWrite(tilos2, LOW);
+  
+  unsigned long ZcurrentMillis = millis();
+
+  if (ZcurrentMillis - ZpreviousMillis >= interval) {
+    // az utolsó ledvillogás mentése
+    ZpreviousMillis = ZcurrentMillis;
+
+    // Ha LED kiakpcsolva, akkor bekapcsol és fordítva
+    if (ZledState == LOW) {
+      ZledState = HIGH;
+    } else {
+      ZledState = LOW;
+    }
+
+    // LED Be- és Kikapcsolása ZledState alapján
+    digitalWrite(szabad, ZledState);
+  }
+}
+
+void tilosjelzes() {
+  // TILOS jelzésnél használt programblokk, ilyenkor a sorompó lezár, a piros LED-ek felváltva villognak.
+  digitalWrite(srmp, HIGH);
+  digitalWrite(szabad, LOW);
+  
+  unsigned long RcurrentMillis = millis();
+
+  if (RcurrentMillis - RpreviousMillis >= interval) {
+    // az utolsó ledvillogás mentése
+    RpreviousMillis = RcurrentMillis;
+
+    // Ha LED kiakpcsolva, akkor bekapcsol és fordítva
+    if (RledState == LOW) {
+      RledState = HIGH;
+    } else {
+      RledState = LOW;
+    }
+
+    // LED Be- és Kikapcsolása ZledState alapján
+    digitalWrite(tilos1, RledState);
+    digitalWrite(tilos2, !RledState);
+  }
+}
